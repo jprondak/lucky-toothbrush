@@ -1,0 +1,45 @@
+#!/usr/bin/env perl 
+#
+# bad-hosts
+#
+# strips out 
+#	Missing ip addresses
+#	BAD ip addresses (i.e. 127.0.0.1, 0.0.0.0)
+#	blank lines
+#
+use strict;
+use warnings;
+
+my $PROGNAME = $0;
+$PROGNAME =~ s!.*/!!;
+
+use Net::hostent;
+use Socket;
+
+my $bad = 0;
+my $good = 0;
+my $count = 0;
+
+while (<>) {
+	chomp;
+	next if /^\S+?\#/;
+	next if /\A\Z/;
+	$count++;
+	my $h = gethost($_);
+	unless (defined $h) {
+		print STDERR
+			sprintf( "[%s] NOTFOUND %s\n", $PROGNAME, $_);
+		$bad++;
+		printf("%s\n", $_);
+		next;
+	}
+	$good++;
+	printf("%s %s %s\n",
+		$_,
+		lc($h->name),
+		join(", ", @{$h->aliases}));
+}
+END {
+    print STDERR sprintf("[%s] %d/%d/%d IPs TOTAL/RESOLVED/UNKNOWN\n",
+        $PROGNAME, $count, $good, $bad);
+}

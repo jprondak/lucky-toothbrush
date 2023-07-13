@@ -1,0 +1,63 @@
+#!/sbcimp/run/pd/csm/64-bit/perl/5.16.3/bin/perl
+#
+# extract-ips
+#
+# Extract IPs from a datastream
+#
+
+use strict;
+use warnings;
+use lib qw( /sbcimp/run/pd/csm/64-bit/cpan/5.16.3-2013.03/lib );
+use Regexp::Assemble;
+
+my $PROGNAME = $0;
+$PROGNAME =~ s/.*\/(.*)$/$1/; 
+
+my $start_time = scalar time;
+my $end_time;
+
+my $count = 0;
+my %hosts = (); 
+
+
+use constant {
+	CISCO_ACS_RE	=> q{\s([^\s+]+)\s+(?:CSCOacs_|CisACS)},
+	NETSCREEN_RE	=> q{\bNetScreen\b device_id=([^\s]+)},
+	IPV4_RE			=> q{(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b)}
+};
+
+my $re = Regexp::Assemble->new
+	->add(CISCO_ACS_RE)
+	->add(NETSCREEN_RE)
+	->add(IPV4_RE);
+
+#	->add(q{\s([^\s+]+)\s+(?:CSCOacs_|CisACS)})
+#	->add(q{\bNetScreen\b device_id=([^\s]+)})
+#	->add(q{(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b)});
+
+#$re = qr/(?:\s([^\s+]+)\s+(?:CSCOacs_|CisACS)|\bNetScreen\b device_id=([^\s]+)|(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b))/;
+
+while (<>) {
+	next if /\A\Z/;
+	next if /^\#/;
+	map {
+		$count++;
+ 		$hosts{lc($_)}++
+	} grep { defined } (m/$re/g);
+}
+
+END {
+
+	my $totals = 0;	
+	$end_time = scalar time;
+	map {
+		$totals += $hosts{$_};
+		print "$_\n"
+	} keys %hosts;
+	print STDERR
+		 sprintf("[%s] FOUND %d HOSTs/IPs in %d Records in %d seconds\n",
+			"$PROGNAME",
+			$totals,
+			$count,
+			$end_time - $start_time);
+}

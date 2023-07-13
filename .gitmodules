@@ -1,0 +1,3 @@
+[submodule "lib/makekit"]
+	path = lib/makekit
+	url = git@github.com:jprondak/makekit.git

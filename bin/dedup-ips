@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# dedup-ips
+#
+PROGNAME="${PROGNAME:-`echo $0 | sed -e 's!.*/!!'`}"
+
+/bin/awk -v progname="$PROGNAME" '
+BEGIN {
+	count=0
+}
+{
+	if (!_[$1]) { _[$1]++; count++; print }
+}
+END {
+	printf "[dedup-ips] %d/%d/%d IPs IN/OUT/REMOVED\n",
+		NR, count, NR - count | "cat >&2"
+}
+' $*

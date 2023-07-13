@@ -1,0 +1,46 @@
+#!/usr/bin/perl 
+#
+# bad-hosts
+#
+# strips out 
+#	Missing ip addresses
+#	BAD ip addresses (i.e. 127.0.0.1, 0.0.0.0)
+#	blank lines
+#
+use strict;
+use warnings;
+#use lib qw( /opt/csm/64-bit/cpan/5.16.3-2013.03/lib );
+#use Text::CSV;
+#use Data::Dumper;
+
+my $PROGNAME = $0;
+$PROGNAME =~ s!.*/!!;
+
+my %bad = ();
+my $good = 0;
+my $count = 0;
+
+while (<>) {
+	$count++;
+	unless ( /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/ ) {
+		chomp;
+		$bad{$_}++;
+		next;
+	}
+	if ( /\b(127\.0\.0\.1|0\.0\.0\.0)\b/ ) {
+		$bad{$1}++;
+		next;
+	}
+	$good++;
+	print;
+}
+END {
+	map { 
+		print STDERR
+			sprintf(
+				 "[%s] ERROR: Bad IP %s/%s (IP/COUNT)\n",
+				$PROGNAME, $_, $bad{$_});
+	} keys %bad;
+    print STDERR sprintf("[%s] %d/%d/%d IPs TOTAL/GOOD/BAD\n",
+        $PROGNAME, $count, $good, scalar keys %bad);
+}

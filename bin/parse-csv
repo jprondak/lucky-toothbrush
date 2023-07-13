@@ -1,0 +1,24 @@
+#!/bin/awk -f 
+BEGIN {
+	FS=","
+}
+{
+	if (NR==1) { next } # ignore header
+	if (!$1) { next }
+	if (!$2) {
+		printf("CSV: %s has no ipaddress\n", $1) | "cat >&2"
+		next 
+    }
+	if ($2 == "127.0.0.1" ) {
+		printf("CSV: %s[%s] is localhost\n", $1, $2) | "cat >&2"
+		next; 
+	}
+	if ($2 == "0.0.0.0" ) {
+		printf("CSV: %s[%s] is all zeros\n", $1, $2) | "cat >&2"
+		next; 
+	}
+    _[$2];
+}
+END {
+	for ( ip in _ ) { print ip }
+}

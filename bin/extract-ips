@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+#
+# extract-ips
+#
+# Extract IPs from a datastream
+#
+
+my $PROGNAME = $0;
+$PROGNAME =~ s/.*\/(.*)$/$1/; 
+
+my $count = 0;
+my $ips = 0;
+
+while (<>) {
+	next if /\A\Z/;
+	next if /^\#/;
+	$count++;
+	map {
+		$ips++;
+		print "$_\n"
+	} ( m/(\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b)/g );
+}
+END {
+	print STDERR
+		 sprintf("[%s] FOUND %d IPs in %d Records\n",
+			"$PROGNAME",
+			$ips,
+			$count);
+}

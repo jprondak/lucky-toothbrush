@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# missing-ips
+#
+# Generate a CSV of the missing ipaddresses
+#
+PROGNAME="${PROGNAME:-`echo $0 | sed -e 's!.*/!!'`}"
+PROGNAME=missing-ips
+
+/bin/gawk -v progname="$PROGNAME" '
+	BEGIN {
+		reference = 0	
+		scanned = 0
+		missing = 0
+	}
+	{
+		if (NR==FNR) {
+			ips[$1]=1
+			reference++;
+			next
+		}
+		scanned++
+		s[$1]=1
+#		if ($1 in ips) {
+#			ips[$1]++
+#		}
+	}
+	END {
+		for (i in ips) {
+#			if (ips[i] == 0) {
+			if (! s[i]) {
+				missing++
+				print i
+			}
+		}
+		printf "[%s] %d Reference IPs\n",
+			 progname, reference | "cat >&2"
+		printf "[%s] %d Scanned IPs\n",
+			 progname, scanned | "cat >&2"
+		printf "[%s] %d Missing IPs\n",
+			 progname, missing | "cat >&2"
+	}
+' $*

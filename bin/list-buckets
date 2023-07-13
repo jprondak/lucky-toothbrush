@@ -1,0 +1,125 @@
+#!/bin/sh
+#
+
+PROGNAME="${PROGNAME:-`echo $0 | sed -e 's!.*/!!'`}"
+PROGDIR="${PROGDIR:-`echo $0 | sed -e 's!/.*$!!'`}"
+#PROGDIR=`dirname $0`
+BASEDIR="${BASEDIR:-`(cd $PROGDIR; pwd)`}"
+SELF="${SELF:-`cd $BASEDIR; pwd`/$PROGNAME}"
+
+MK_DEFAULT_HOME="@MK_DEFAULT_HOME@"
+MK_SOURCE_DIR="`dirname "$0"`/.."
+MK_COMMAND="`basename "$0"`"
+MK_COMMAND_PATH="`dirname "$0"`"
+#MK_DEFAULT_HOME="`(cd $MK_SOURCE_DIR; pwd)`"
+
+export MK_COMMAND MK_COMMAND_PATH
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/ccs/bin:/usr/ucb
+[ -d /usr/ucb ] && PATH="$PATH:/usr/ucb"
+[ -d /usr/ccs ] && PATH="$PATH:/usr/ccs"
+
+fail()
+{
+	echo "error: $1"
+	exit 1
+}
+
+find_shell()
+{
+	if test "`uname`" = "FreeBSD"
+	then
+		# Look for dash in the path
+		# /bin/sh is an ancestor of dash on FreeBSD, so
+		# fall back on it and don't bother with bash
+		SHELL_CANDIDATES="dash"
+		SHELL_FALLBACKS="/bin/sh"
+	else
+		# Look for dash or bash in the path
+		# Fall back on xpg4 sh (Solaris) or /bin/sh
+		SHELL_CANDIDATES="bash"
+		SHELL_FALLBACKS="/usr/xpg4/bin/sh /bin/sh"
+	fi
+
+	if test "x$MK_SHELL" != "x"
+	then
+		return 0
+	fi
+
+	for _shell in ${SHELL_CANDIDATES}
+	do
+		_IFS="$IFS"
+		IFS=":"
+		for _dir in ${PATH}
+		do
+			if [ -x "$_dir/$_shell" ]
+			then
+			MK_SHELL="$_dir/$_shell"
+			return 0
+			fi
+		done
+		IFS="$_IFS"
+	done
+	
+	for _shell in ${SHELL_FALLBACKS}
+	do
+		if [ -x "$_shell" ]
+		then
+			MK_SHELL="$_shell"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+if test -d "$MK_HOME"
+then
+	:
+elif test -d "$MK_DEFAULT_HOME"
+then
+	MK_HOME="${MK_DEFAULT_HOME}"
+elif test -d "${MK_SOURCE_DIR}/lib/mk"
+then
+	MK_HOME="${MK_SOURCE_DIR}/lib"
+elif test -d "${MK_SOURCE_DIR}/mk"
+then
+	MK_HOME="${MK_SOURCE_DIR}/mk"
+elif test -x "${MK_SOURCE_DIR}/makekit"
+then
+	MK_HOME="${MK_SOURCE_DIR}"
+else
+	echo "ERROR: could not find valid MK_HOME"
+	exit 1
+fi
+
+# If the system has /usr/xpg4/bin, add it to the path
+# so we get POSIX-compliant utilities
+if test -d "/usr/xpg4/bin"
+then
+	PATH="/usr/xpg4/bin:$PATH"
+fi
+
+if test -n "$MK_TRACE"
+then
+	_trace="-x"
+fi
+
+if test x"$MK_COMMAND" = x".wrapper"
+then
+	MK_COMMAND="$1"
+	shift
+fi
+
+# Find a shell
+find_shell || fail "could not find a usable shell"
+
+export MK_HOME MK_SHELL MK_SOURCE_DIR PATH MK_COMMAND_PATH
+
+if test -f "${MK_HOME}/command/${MK_COMMAND}.sh"
+then
+	exec $MK_SHELL ${_trace} "${MK_HOME}/command/${MK_COMMAND}.sh" "$@"
+else
+	echo "Unknown command: $MK_COMMAND"
+	exit 1
+fi

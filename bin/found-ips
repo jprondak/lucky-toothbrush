@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# found-ips
+#
+# Generate a CSV of the matching ipaddresses
+#
+PROGNAME="${PROGNAME:-`echo $0 | sed -e 's!.*/!!'`}"
+PROGNAME="found-ips"
+
+/bin/awk -v progname="$PROGNAME" '
+	BEGIN {
+		reference = 0	
+		scanned = 0
+		found = 0
+	}
+	{
+		if (NR==FNR) {
+			ips[$1]=0
+			reference++;
+			next
+		}
+		scanned++
+		if ($1 in ips) {
+			ips[$1]++
+		}
+	}
+	END {
+		for (i in ips) {
+			 if (ips[i] > 0) {
+				found++
+				print i
+			 }
+		}
+		printf "[%s] %d Refernce IPs\n",
+			 progname, reference | "cat >&2"
+		printf "[%s] %d Scanned IPs\n",
+			 progname, scanned | "cat >&2"
+		printf "[%s] %d Matched IPs found\n",
+			 progname, found | "cat >&2"
+		printf "[%s] Difference %d IPs\n",
+			 progname, reference - found | "cat >&2"
+	}
+' $*
